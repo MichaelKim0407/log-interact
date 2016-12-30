@@ -30,6 +30,8 @@ class Handler(object):
 
 
 class OpenedFile(Handler):
+    BY_LINE_THRESHOLD = 1024
+
     def __init__(self, name):
         if not name or not isinstance(name, str):
             raise ValueError
@@ -40,34 +42,47 @@ class OpenedFile(Handler):
     def __repr__(self):
         return "OpenedFile '{}' {} bytes".format(self.__name, self.__size)
 
-    def close(self, console, **kwargs):
+    def close(self, **kwargs):
         self.__file.close()
-        console.message("File closed")
 
     def readlines(self, console, **kwargs):
-        lines = List(Line)(self.__file.readlines())
-        console.message("{} lines read".format(lines.count))
-        self.close(console=console, **kwargs)
-        return lines
+        if self.__size >= OpenedFile.BY_LINE_THRESHOLD:
+            console.message("File larger than {} bytes, using by-line mode".format(
+                OpenedFile.BY_LINE_THRESHOLD))
+            return self.read_by_line(console=console, **kwargs)
+        else:
+            lines = List(Line)(self.__file.readlines())
+            self.close(console=console, **kwargs)
+            return lines
+
+    def read_by_line(self, **kwargs):
+        def __iter():
+            for line in self.__file:
+                yield line
+
+        def __exit():
+            self.close(**kwargs)
+
+        return Iterator(Line, __exit)(__iter)
 
 
 class List(Handler):
     def __init__(self, type):
-        self._type = type
+        self.__type = type
         self.__items = []
         self.count = 0
 
     def __call__(self, items):
-        self.__items = list(self._type.items(items))
+        self.__items = list(self.__type.items(items))
         self.count = len(self.__items)
         return self
 
     def __repr__(self):
-        return "List<{}>[{}]".format(self._type.__name__, self.count)
+        return "List<{}>[{}]".format(self.__type.__name__, self.count)
 
     def execute_cmd(self, cmd, **kwargs):
-        if cmd in self._type.PROJECTED_TYPE:
-            projected_type = self._type.PROJECTED_TYPE[cmd]
+        if cmd in self.__type.PROJECTED_TYPE:
+            projected_type = self.__type.PROJECTED_TYPE[cmd]
             return List(projected_type)(
                 [
                     item.execute_cmd(cmd=cmd, **kwargs)
@@ -98,12 +113,81 @@ class List(Handler):
     def keep(self, arg, error, **kwargs):
         if arg is None:
             error("Please specify criteria")
-        return List(self._type)([item for item in self.__items if item.match(arg)])
+        return List(self.__type)([item for item in self.__items if item.match(arg)])
 
     def throw(self, arg, error, **kwargs):
         if arg is None:
             error("Please specify criteria")
-        return List(self._type)([item for item in self.__items if not item.match(arg)])
+        return List(self.__type)([item for item in self.__items if not item.match(arg)])
+
+
+class Iterator(Handler):
+    def __init__(self, type, exit):
+        self.__type = type
+        self.exit = exit
+
+    def __iter(self):
+        pass
+
+    def __call__(self, items_iter):
+        self.__iter = self.__type.items_iter(items_iter)
+        return self
+
+    def __repr__(self):
+        return "Iter<{}>".format(self.__type.__name__)
+
+    def execute_cmd(self, cmd, **kwargs):
+        if cmd in self.__type.PROJECTED_TYPE:
+            projected_type = self.__type.PROJECTED_TYPE[cmd]
+
+            def __iter():
+                for item in self.__iter():
+                    yield item.execute_cmd(cmd=cmd, **kwargs)
+
+            return Iterator(projected_type, self.exit)(__iter)
+        else:
+            return Handler.execute_cmd(self, cmd=cmd, **kwargs)
+
+    def do(self, **kwargs):
+        result = List(self.__type)([item for item in self.__iter()])
+        self.exit()
+        return result
+
+    def __save_lines(self):
+        for item in self.__iter():
+            yield str(item)
+
+    def save(self, arg, error, **kwargs):
+        try:
+            with open(arg, "w") as f:
+                for line in self.__save_lines():
+                    f.write(line)
+                    f.write("\n")
+        except IsADirectoryError:
+            error("'{}' is a directory")
+        self.exit()
+
+    def keep(self, arg, error, **kwargs):
+        if arg is None:
+            error("Please specify criteria")
+
+        def __iter():
+            for item in self.__iter():
+                if item.match(arg):
+                    yield item
+
+        return Iterator(self.__type, self.exit)(__iter)
+
+    def throw(self, arg, error, **kwargs):
+        if arg is None:
+            error("Please specify criteria")
+
+        def __iter():
+            for item in self.__iter():
+                if not item.match(arg):
+                    yield item
+
+        return Iterator(self.__type, self.exit)(__iter)
 
 
 class Iterable(Handler):
@@ -131,6 +215,17 @@ class Iterable(Handler):
                 yield item
             else:
                 yield cls(item)
+
+    @classmethod
+    def items_iter(cls, items_iter):
+        def __iter():
+            for item in items_iter():
+                if isinstance(item, Iterable):
+                    yield item
+                else:
+                    yield cls(item)
+
+        return __iter
 
     def match(self, arg):
         return True

@@ -64,6 +64,7 @@ def cmd_run(arg, error, console, **kwargs):
 
 @command("close")
 @command("readlines")
+@command("read-by-line")
 @command("split")
 @command("make-dict")
 @command("print")
@@ -72,6 +73,7 @@ def cmd_run(arg, error, console, **kwargs):
 @command("throw")
 @command("take")
 @command("int")
+@command("do")
 def cmd_common(cmd, last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
