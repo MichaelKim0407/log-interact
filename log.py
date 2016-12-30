@@ -91,6 +91,14 @@ class List(Handler):
         else:
             return Handler.execute_cmd(self, cmd=cmd, **kwargs)
 
+    def limit(self, arg, error, **kwargs):
+        if not arg:
+            error("Invalid argument")
+        args = arg.split()
+        if len(args) <= 0 or len(args) > 3:
+            error("Invalid argument")
+        return List(self.__type)([self.__items[i] for i in range(*args)])
+
     def __save_lines(self):
         for item in self.__items:
             yield str(item)
@@ -147,6 +155,33 @@ class Iterator(Handler):
             return Iterator(projected_type, self.exit)(__iter)
         else:
             return Handler.execute_cmd(self, cmd=cmd, **kwargs)
+
+    def limit(self, arg, error, **kwargs):
+        if not arg:
+            error("Invalid argument")
+        args = arg.split()
+        if len(args) <= 0 or len(args) > 3:
+            error("Invalid argument")
+
+        if len(args) == 1:
+            start, stop, step = 0, int(args[0]), 1
+        elif len(args) == 2:
+            start, stop, step = int(args[0]), int(args[1]), 1
+        else:
+            start, stop, step = int(args[0]), int(args[1]), int(args[2])
+
+        def __iter():
+            i = 0
+            j = start
+            for item in self.__iter():
+                if i == j:
+                    yield item
+                    j += step
+                    if j >= stop:
+                        return
+                i += 1
+
+        return Iterator(self.__type, self.exit)(__iter)
 
     def do(self, **kwargs):
         result = List(self.__type)([item for item in self.__iter()])
@@ -274,6 +309,16 @@ def __line_split(self, arg, **kwargs):
     return self._item.split(arg)
 
 
+@SplitLine.project("split", SplitLine)
+def __splitline_split(self, arg, **kwargs):
+    def __iter():
+        for item in self._item:
+            for i in item.split(arg):
+                yield i
+
+    return list(__iter())
+
+
 @SplitLine.project("take", SplitLine)
 def __splitline_take(self, arg, error, **kwargs):
     try:
@@ -302,6 +347,28 @@ def __splitline_kv(self, arg, **kwargs):
             k, v = i, None
         d[k] = v
     return d
+
+
+@SplitLine.project("add-before", SplitLine)
+def __splitline_add_before(self, arg, error, **kwargs):
+    try:
+        index, content = arg.split(None, 1)
+        index = int(index)
+        return [content + self._item[i] if i == index else self._item[i]
+                for i in range(len(self._item))]
+    except IndexError or ValueError or TypeError:
+        error("Invalid argument")
+
+
+@SplitLine.project("add-after", SplitLine)
+def __splitline_add_after(self, arg, error, **kwargs):
+    try:
+        index, content = arg.split(None, 1)
+        index = int(index)
+        return [self._item[i] + content if i == index else self._item[i]
+                for i in range(len(self._item))]
+    except IndexError or ValueError or TypeError:
+        error("Invalid argument")
 
 
 @Dictionary.project("take", Dictionary)

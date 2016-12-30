@@ -74,6 +74,9 @@ def cmd_run(arg, error, console, **kwargs):
 @command("take")
 @command("int")
 @command("do")
+@command("add-before")
+@command("add-after")
+@command("limit")
 def cmd_common(cmd, last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
