@@ -75,6 +75,7 @@ def cmd_run(arg, error, console, **kwargs):
 @command("int")
 @command("number")
 @command("do")
+@command("abort")
 @command("add-before")
 @command("add-after")
 @command("replace")

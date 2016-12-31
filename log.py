@@ -188,6 +188,9 @@ class Iterator(Handler):
         self.exit()
         return result
 
+    def abort(self, **kwargs):
+        self.exit()
+
     def __save_lines(self):
         for item in self.__iter():
             yield str(item)
