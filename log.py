@@ -66,30 +66,62 @@ class OpenedFile(Handler):
         return Iterator(Line, __exit)(__iter)
 
 
-class List(Handler):
+class Collection(Handler):
     def __init__(self, type):
-        self.__type = type
+        self._type = type
+
+    def __repr__(self):
+        return "{}<{}>".format(self.__class__.__name__, self._type.__name__)
+
+    def get_items(self, type, converter=None, match=None):
+        if converter is None:
+            converter = lambda x: x
+        if match is None:
+            match = lambda x: True
+        return self._get_items(type, converter, match)
+
+    def _get_items(self, type, converter, match):
+        pass
+
+    def execute_cmd(self, cmd, **kwargs):
+        if cmd in self._type.PROJECTED_TYPE:
+            projected_type = self._type.PROJECTED_TYPE[cmd]
+            return self.get_items(projected_type,
+                                  converter=lambda item: item.execute_cmd(cmd=cmd, **kwargs))
+        else:
+            try:
+                return Handler.execute_cmd(self, cmd=cmd, **kwargs)
+            except HandlerMethodNotFound:
+                raise HandlerMethodNotFound(
+                    "`{!r}` cannot execute command '{}'".format(self, cmd))
+
+    def keep(self, arg, error, **kwargs):
+        if arg is None:
+            error("Please specify criteria")
+        return self.get_items(self._type, match=lambda item: item.match(arg))
+
+    def throw(self, arg, error, **kwargs):
+        if arg is None:
+            error("Please specify criteria")
+        return self.get_items(self._type, match=lambda item: not item.match(arg))
+
+
+class List(Collection):
+    def __init__(self, type):
+        Collection.__init__(self, type)
         self.__items = []
         self.count = 0
 
     def __call__(self, items):
-        self.__items = list(self.__type.items(items))
+        self.__items = list(self._type.items(items))
         self.count = len(self.__items)
         return self
 
     def __repr__(self):
-        return "List<{}>[{}]".format(self.__type.__name__, self.count)
+        return Collection.__repr__(self) + "[{}]".format(self.count)
 
-    def execute_cmd(self, cmd, **kwargs):
-        if cmd in self.__type.PROJECTED_TYPE:
-            projected_type = self.__type.PROJECTED_TYPE[cmd]
-            return List(projected_type)(
-                [
-                    item.execute_cmd(cmd=cmd, **kwargs)
-                    for item in self.__items
-                    ])
-        else:
-            return Handler.execute_cmd(self, cmd=cmd, **kwargs)
+    def _get_items(self, type, converter, match):
+        return List(type)([converter(item) for item in self.__items if match(item)])
 
     def limit(self, arg, error, **kwargs):
         if not arg:
@@ -97,7 +129,7 @@ class List(Handler):
         args = arg.split()
         if len(args) <= 0 or len(args) > 3:
             error("Invalid argument")
-        return List(self.__type)([self.__items[i] for i in range(*args)])
+        return List(self._type)([self.__items[i] for i in range(*args)])
 
     def __save_lines(self):
         for item in self.__items:
@@ -122,43 +154,26 @@ class List(Handler):
         console.stored_values[arg] = self
         return self
 
-    def keep(self, arg, error, **kwargs):
-        if arg is None:
-            error("Please specify criteria")
-        return List(self.__type)([item for item in self.__items if item.match(arg)])
 
-    def throw(self, arg, error, **kwargs):
-        if arg is None:
-            error("Please specify criteria")
-        return List(self.__type)([item for item in self.__items if not item.match(arg)])
-
-
-class Iterator(Handler):
+class Iterator(Collection):
     def __init__(self, type, exit):
-        self.__type = type
+        Collection.__init__(self, type)
         self.exit = exit
 
     def __iter(self):
         pass
 
     def __call__(self, items_iter):
-        self.__iter = self.__type.items_iter(items_iter)
+        self.__iter = self._type.items_iter(items_iter)
         return self
 
-    def __repr__(self):
-        return "Iter<{}>".format(self.__type.__name__)
+    def _get_items(self, type, converter, match):
+        def __iter():
+            for item in self.__iter():
+                if match(item):
+                    yield converter(item)
 
-    def execute_cmd(self, cmd, **kwargs):
-        if cmd in self.__type.PROJECTED_TYPE:
-            projected_type = self.__type.PROJECTED_TYPE[cmd]
-
-            def __iter():
-                for item in self.__iter():
-                    yield item.execute_cmd(cmd=cmd, **kwargs)
-
-            return Iterator(projected_type, self.exit)(__iter)
-        else:
-            return Handler.execute_cmd(self, cmd=cmd, **kwargs)
+        return Iterator(type, self.exit)(__iter)
 
     def limit(self, arg, error, **kwargs):
         if not arg:
@@ -185,10 +200,10 @@ class Iterator(Handler):
                         return
                 i += 1
 
-        return Iterator(self.__type, self.exit)(__iter)
+        return Iterator(self._type, self.exit)(__iter)
 
     def do(self, **kwargs):
-        result = List(self.__type)([item for item in self.__iter()])
+        result = List(self._type)([item for item in self.__iter()])
         self.exit()
         return result
 
@@ -208,28 +223,6 @@ class Iterator(Handler):
         except IsADirectoryError:
             error("'{}' is a directory")
         self.exit()
-
-    def keep(self, arg, error, **kwargs):
-        if arg is None:
-            error("Please specify criteria")
-
-        def __iter():
-            for item in self.__iter():
-                if item.match(arg):
-                    yield item
-
-        return Iterator(self.__type, self.exit)(__iter)
-
-    def throw(self, arg, error, **kwargs):
-        if arg is None:
-            error("Please specify criteria")
-
-        def __iter():
-            for item in self.__iter():
-                if not item.match(arg):
-                    yield item
-
-        return Iterator(self.__type, self.exit)(__iter)
 
 
 class Iterable(Handler):
