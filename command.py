@@ -80,7 +80,7 @@ def cmd_run(arg, error, console, **kwargs):
 @command("add-after")
 @command("replace")
 @command("limit")
-def cmd_common(cmd, last, error, **kwargs):
+def cmd_common(last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
-    return last.execute_cmd(cmd, error=error, **kwargs)
+    return last.execute_cmd(error=error, **kwargs)
