@@ -337,6 +337,16 @@ def __splitline_int(self, arg, error, **kwargs):
         error("Invalid argument")
 
 
+@SplitLine.project("number", SplitLine)
+def __splitline_float(self, arg, error, **kwargs):
+    try:
+        indexes = [int(i) for i in arg.split()]
+        return [float(self._item[i]) if i in indexes else self._item[i]
+                for i in range(len(self._item))]
+    except IndexError or ValueError:
+        error("Invalid argument")
+
+
 @SplitLine.project("make-dict", Dictionary)
 def __splitline_kv(self, arg, **kwargs):
     d = SequenceDict()
@@ -402,6 +412,20 @@ def __dictionary_int(self, arg, error, **kwargs):
             d[k] = self._item[k]
             if k in int_keys:
                 d[k] = int(d[k])
+        return d
+    except KeyError or ValueError:
+        error("Invalid argument")
+
+
+@Dictionary.project("number", Dictionary)
+def __dictionary_float(self, arg, error, **kwargs):
+    try:
+        d = SequenceDict()
+        int_keys = arg.split()
+        for k in self._item:
+            d[k] = self._item[k]
+            if k in int_keys:
+                d[k] = float(d[k])
         return d
     except KeyError or ValueError:
         error("Invalid argument")
