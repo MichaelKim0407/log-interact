@@ -30,7 +30,7 @@ class Handler(object):
 
 
 class OpenedFile(Handler):
-    BY_LINE_THRESHOLD = 1024
+    BY_LINE_THRESHOLD = 1024 * 1024
 
     def __init__(self, name):
         if not name or not isinstance(name, str):
