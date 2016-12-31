@@ -73,6 +73,9 @@ class Collection(Handler):
     def __repr__(self):
         return "{}<{}>".format(self.__class__.__name__, self._type.__name__)
 
+    def __iter__(self):
+        pass
+
     def get_items(self, type, converter=None, match=None):
         if converter is None:
             converter = lambda x: x
@@ -105,75 +108,18 @@ class Collection(Handler):
             error("Please specify criteria")
         return self.get_items(self._type, match=lambda item: not item.match(arg))
 
-
-class List(Collection):
-    def __init__(self, type):
-        Collection.__init__(self, type)
-        self.__items = []
-        self.count = 0
-
-    def __call__(self, items):
-        self.__items = list(self._type.items(items))
-        self.count = len(self.__items)
-        return self
-
-    def __repr__(self):
-        return Collection.__repr__(self) + "[{}]".format(self.count)
-
-    def _get_items(self, type, converter, match):
-        return List(type)([converter(item) for item in self.__items if match(item)])
-
-    def limit(self, arg, error, **kwargs):
-        if not arg:
-            error("Invalid argument")
-        args = arg.split()
-        if len(args) <= 0 or len(args) > 3:
-            error("Invalid argument")
-        return List(self._type)([self.__items[i] for i in range(*args)])
-
-    def __save_lines(self):
-        for item in self.__items:
+    def _save_lines(self):
+        for item in self:
             yield str(item)
-
-    def print(self, console, **kwargs):
-        for line in self.__save_lines():
-            console.message(line)
-        return self
 
     def save(self, arg, error, **kwargs):
         try:
             with open(arg, "w") as f:
-                for line in self.__save_lines():
+                for line in self._save_lines():
                     f.write(line)
                     f.write("\n")
         except IsADirectoryError:
             error("'{}' is a directory")
-        return self
-
-    def store(self, arg, console, **kwargs):
-        console.stored_values[arg] = self
-        return self
-
-
-class Iterator(Collection):
-    def __init__(self, type, exit):
-        Collection.__init__(self, type)
-        self.exit = exit
-
-    def __iter(self):
-        pass
-
-    def __call__(self, items_iter):
-        self.__iter = self._type.items_iter(items_iter)
-        return self
-
-    def _get_items(self, type, converter, match):
-        def __iter():
-            for item in self.__iter():
-                if match(item):
-                    yield converter(item)
-
-        return Iterator(type, self.exit)(__iter)
 
     def limit(self, arg, error, **kwargs):
         if not arg:
@@ -192,7 +138,7 @@ class Iterator(Collection):
         def __iter():
             i = 0
             j = start
-            for item in self.__iter():
+            for item in self:
                 if i == j:
                     yield item
                     j += step
@@ -200,28 +146,83 @@ class Iterator(Collection):
                         return
                 i += 1
 
-        return Iterator(self._type, self.exit)(__iter)
+        return __iter
+
+
+class List(Collection):
+    def __init__(self, type):
+        Collection.__init__(self, type)
+        self.__items = []
+
+    def __call__(self, items):
+        self.__items = list(self._type.items(items))
+        return self
+
+    def __repr__(self):
+        return Collection.__repr__(self) + "[{}]".format(len(self))
+
+    def __iter__(self):
+        return self.__items.__iter__()
+
+    def __len__(self):
+        return len(self.__items)
+
+    def _get_items(self, type, converter, match):
+        return List(type)([converter(item) for item in self if match(item)])
+
+    def limit(self, **kwargs):
+        return List(self._type)([item for item in Collection.limit(self, **kwargs)()])
+
+    def print(self, console, **kwargs):
+        for line in self._save_lines():
+            console.message(line)
+        return self
+
+    def save(self, **kwargs):
+        Collection.save(self, **kwargs)
+        return self
+
+    def store(self, arg, console, **kwargs):
+        console.stored_values[arg] = self
+        return self
+
+
+class Iterator(Collection):
+    def __init__(self, type, exit):
+        Collection.__init__(self, type)
+        self.exit = exit
+
+    def __iter__(self):
+        return self.__iter()
+
+    def __iter(self):
+        pass
+
+    def __call__(self, items_iter):
+        self.__iter = self._type.items_iter(items_iter)
+        return self
+
+    def _get_items(self, type, converter, match):
+        def __iter():
+            for item in self:
+                if match(item):
+                    yield converter(item)
+
+        return Iterator(type, self.exit)(__iter)
+
+    def limit(self, **kwargs):
+        return Iterator(self._type, self.exit)(Collection.limit(self, **kwargs))
 
     def do(self, **kwargs):
-        result = List(self._type)([item for item in self.__iter()])
+        result = List(self._type)([item for item in self])
         self.exit()
         return result
 
     def abort(self, **kwargs):
         self.exit()
 
-    def __save_lines(self):
-        for item in self.__iter():
-            yield str(item)
-
-    def save(self, arg, error, **kwargs):
-        try:
-            with open(arg, "w") as f:
-                for line in self.__save_lines():
-                    f.write(line)
-                    f.write("\n")
-        except IsADirectoryError:
-            error("'{}' is a directory")
+    def save(self, **kwargs):
+        Collection.save(self, **kwargs)
         self.exit()
 
 
