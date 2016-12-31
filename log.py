@@ -45,7 +45,7 @@ class OpenedFile(Handler):
     def close(self, **kwargs):
         self.__file.close()
 
-    def readlines(self, console, **kwargs):
+    def read_lines(self, console, **kwargs):
         if self.__size >= OpenedFile.BY_LINE_THRESHOLD:
             console.message("File larger than {} bytes, using by-line mode".format(
                 OpenedFile.BY_LINE_THRESHOLD))

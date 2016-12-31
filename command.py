@@ -63,7 +63,7 @@ def cmd_run(arg, error, console, **kwargs):
 
 
 @command("close")
-@command("readlines")
+@command("read-lines")
 @command("read-by-line")
 @command("split")
 @command("make-dict")
