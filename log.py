@@ -118,6 +118,10 @@ class List(Handler):
             error("'{}' is a directory")
         return self
 
+    def store(self, arg, console, **kwargs):
+        console.stored_values[arg] = self
+        return self
+
     def keep(self, arg, error, **kwargs):
         if arg is None:
             error("Please specify criteria")

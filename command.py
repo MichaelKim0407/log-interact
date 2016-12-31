@@ -80,7 +80,16 @@ def cmd_run(arg, error, console, **kwargs):
 @command("add-after")
 @command("replace")
 @command("limit")
+@command("store")
 def cmd_common(last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
     return last.execute_cmd(error=error, **kwargs)
+
+
+@command("load")
+def cmd_load(arg, error, console, **kwargs):
+    if arg in console.stored_values:
+        return console.stored_values[arg]
+    else:
+        error("Value '{}' not found".format(arg))

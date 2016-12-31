@@ -13,6 +13,7 @@ class Console(object):
     def __init__(self):
         clear_screen()
         self.result = None
+        self.stored_values = {}
 
     def single_line(self, line):
         if not line:

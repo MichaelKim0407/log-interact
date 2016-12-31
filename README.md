@@ -225,11 +225,18 @@ Note: All iterable commands can be executed on their collections respectively.
 
 * `store VAR_NAME`
 
-    Under construction.
+    * Execute on: `List`
+    * Param `VAR_NAME`: Variable name
+    * Return: Nothing changed
+
+    Store the current result in a variable that can be retrieved later using `load`. This value will be kept as long as the program is not exited or reset.
 
 * `load VAR_NAME`
 
-    Under construction.
+    * Param `VAR_NAME`: Variable name
+    * Return: `List`
+
+    Retrieve a previously stored result. Note that the current result will be lost.
 
 * `keep CRITERIA`
 
