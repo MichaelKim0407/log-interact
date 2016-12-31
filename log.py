@@ -371,6 +371,17 @@ def __splitline_add_after(self, arg, error, **kwargs):
         error("Invalid argument")
 
 
+@SplitLine.project("replace", SplitLine)
+def __splitline_add_after(self, arg, error, **kwargs):
+    try:
+        index, replace, replace_with = arg.split(None, 2)
+        index = int(index)
+        return [self._item[i].replace(replace, replace_with) if i == index else self._item[i]
+                for i in range(len(self._item))]
+    except IndexError or ValueError or TypeError:
+        error("Invalid argument")
+
+
 @Dictionary.project("take", Dictionary)
 def __dictionary_take(self, arg, error, **kwargs):
     try:

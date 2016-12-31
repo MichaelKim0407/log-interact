@@ -76,6 +76,7 @@ def cmd_run(arg, error, console, **kwargs):
 @command("do")
 @command("add-before")
 @command("add-after")
+@command("replace")
 @command("limit")
 def cmd_common(cmd, last, error, **kwargs):
     if last is None:
