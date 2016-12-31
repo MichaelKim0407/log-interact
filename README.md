@@ -264,13 +264,37 @@ Note: All iterable commands can be executed on their collections respectively.
 
     Keep only a number of entries.
 
+* `sort @ KEY1 +/- [KEY2 +/- ...]`
+
+    * Execute on: `List` or `Iter` of `Dictionary`
+    * Param `KEY +/- ...`: The keys to sort by. + means ascending and - means descending
+    * Return: `List` of `Dictionary`
+
+    Sort all entries by the keys specified.
+
+    Note that `Iter` will be iterated and the result will be a `List`.
+
 * `count [NAME] @ KEY1 [KEY2...]`
 
-    Under construction.
+    * Execute on: `List` or `Iter` of `Dictionary`
+    * Param `NAME` (optional): The new key. Defaults to `count`.
+    * Param `KEY...`: The keys to group by
+    * Return: `List` of `Dictionary`
+
+    Group entries by the keys specified and add a new `NAME` key with the count of that group as value.
+
+    Note that `Iter` will be iterated and the result will be a `List`.
 
 * `sum SUM_KEY1 [SUM_KEY2...] @ KEY1 [KEY2...]`
 
-    Under construction.
+    * Execute on: `List` or `Iter` of `Dictionary`
+    * Param `SUM_KEY...`: The keys to sum. Defaults to `count`.
+    * Param `KEY...`: The keys to group by
+    * Return: `List` of `Dictionary`
+
+    Group entries by the keys specified and add sum up specified keys in each group. The values to sum up must be turned into integer or number before this operation.
+
+    Note that `Iter` will be iterated and the result will be a `List`.
 
 ## More on commands
 

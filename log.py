@@ -1,8 +1,9 @@
 import os as _os
 import re as _re
 
-from mklibpy.common.collection import SequenceDict as _SequenceDict
+from mklibpy.common.collection import SequenceDict as _SequenceDict, StandardList as _StandardList
 from mklibpy.util.collection import format_list as _format_list, format_dict as _format_dict
+from mklibpy.util.collection import to_dict as _to_dict
 
 import util as _util
 
@@ -66,6 +67,83 @@ class OpenedFile(Handler):
         return Iterator(Line, __exit)(__iter)
 
 
+class Selection(object):
+    def __init__(self, *keys):
+        self.__keys = list(keys)
+        key = self.__keys.pop(0)
+        try:
+            self.__key, self.__sort = key
+        except ValueError:
+            self.__key, self.__sort = key, None
+
+        self.__items = _SequenceDict()
+
+    def __iter(self, *kvs):
+        if self.__keys:
+            for val in self.__items:
+                for i in self[val].__iter(*kvs, (self.__key, val)):
+                    yield i
+        else:
+            for val in self.__items:
+                yield ((*kvs, (self.__key, val)), self[val])
+
+    def __iter__(self):
+        for kvs, l in self.__iter():
+            for item in l:
+                yield item
+
+    def __getitem__(self, item):
+        return self.__items.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        self.__items.__setitem__(key, value)
+
+    def append(self, item):
+        val = item[self.__key]
+        if val not in self.__items:
+            if self.__keys:
+                self[val] = Selection(*self.__keys)
+            else:
+                self[val] = []
+        self[val].append(item)
+
+    def sort(self):
+        if self.__sort == "+":
+            self.__items.sort()
+        elif self.__sort == "-":
+            self.__items.sort(reverse=True)
+        if self.__keys:
+            for item in self.__items.values():
+                item.sort()
+
+    def count(self, name):
+        for kvs, l in self.__iter():
+            keys = []
+            values = []
+            for k, v in kvs:
+                keys.append(k)
+                values.append(v)
+            keys.append(name)
+            values.append(len(l))
+            yield _SequenceDict(*keys, **_to_dict(keys, values))
+
+    def sum(self, *sum_keys):
+        sum_keys = list(sum_keys)
+        for kvs, l in self.__iter():
+            keys = []
+            values = []
+            for k, v in kvs:
+                keys.append(k)
+                values.append(v)
+            keys.extend(sum_keys)
+            for key in sum_keys:
+                val = 0
+                for item in l:
+                    val += item[key]
+                values.append(val)
+            yield _SequenceDict(*keys, **_to_dict(keys, values))
+
+
 class Collection(Handler):
     def __init__(self, type):
         self._type = type
@@ -99,12 +177,12 @@ class Collection(Handler):
                     "`{!r}` cannot execute command '{}'".format(self, cmd))
 
     def keep(self, arg, error, **kwargs):
-        if arg is None:
+        if not arg:
             error("Please specify criteria")
         return self.get_items(self._type, match=lambda item: item.match(arg))
 
     def throw(self, arg, error, **kwargs):
-        if arg is None:
+        if not arg:
             error("Please specify criteria")
         return self.get_items(self._type, match=lambda item: not item.match(arg))
 
@@ -147,6 +225,61 @@ class Collection(Handler):
                 i += 1
 
         return __iter
+
+    def sort(self, arg, error, **kwargs):
+        if self._type is not Dictionary:
+            error("`sort` can only apply to Dictionary")
+        if not arg:
+            error("Invalid argument")
+        args = arg.split()
+        if args[0] != "@":
+            error("Invalid argument")
+        if len(args) < 3:
+            error("Invalid argument")
+        keys = _StandardList(args[1:]).split(2)
+        for key, asc in keys:
+            if asc not in ["+", "-"]:
+                error("Invalid argument")
+        selection = Selection(*keys)
+        for item in self:
+            selection.append(item)
+        selection.sort()
+        return List(Dictionary)(selection)
+
+    def count(self, arg, error, **kwargs):
+        if self._type is not Dictionary:
+            error("`count` can only apply to Dictionary")
+        if not arg:
+            error("Invalid argument")
+        args = arg.split()
+        if args[0] == "@":
+            name = "count"
+            keys = args[1:]
+        elif args[1] == "@":
+            name = args[0]
+            keys = args[2:]
+        else:
+            error("Invalid argument")
+        selection = Selection(*keys)
+        for item in self:
+            selection.append(item)
+        return List(Dictionary)(selection.count(name))
+
+    def sum(self, arg, error, **kwargs):
+        if self._type is not Dictionary:
+            error("`sum` can only apply to Dictionary")
+        if not arg:
+            error("Invalid argument")
+        args = arg.split()
+        if "@" not in args:
+            error("Invalid argument")
+        i = args.index("@")
+        sum_keys = args[:i]
+        keys = args[i + 1:]
+        selection = Selection(*keys)
+        for item in self:
+            selection.append(item)
+        return List(Dictionary)(selection.sum(*sum_keys))
 
 
 class List(Collection):
@@ -298,6 +431,9 @@ class Dictionary(Iterable):
             r_key=False,
             r_val=False
         )
+
+    def __getitem__(self, item):
+        return self._item[item]
 
     def match(self, arg):
         for k in self._item:

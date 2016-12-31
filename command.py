@@ -34,7 +34,7 @@ def __cmd_reset(console, **kwargs):
 
 @command("open")
 def __cmd_file_open(arg, error, **kwargs):
-    if arg is None:
+    if not arg:
         error("Please specify a file")
     try:
         return _log.OpenedFile(arg)
@@ -48,7 +48,7 @@ def __cmd_file_open(arg, error, **kwargs):
 
 @command("run")
 def __cmd_run(arg, error, console, **kwargs):
-    if arg is None:
+    if not arg:
         error("Please specify a script")
     try:
         with open(arg) as f:
@@ -87,6 +87,9 @@ def __cmd_sep(last, console, **kwargs):
 @command("replace")
 @command("limit")
 @command("store")
+@command("sort")
+@command("count")
+@command("sum")
 def __cmd_common(last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
