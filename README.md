@@ -90,6 +90,10 @@ Before moving on to `Commands` section, it is important to understand some of th
 
     Execute a script.
 
+* `-`
+
+    Print an empty line. This can be useful when printing multiple results that need to be separated.
+
 ### File commands
 
 * `open FILENAME`

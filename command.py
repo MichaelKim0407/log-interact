@@ -62,6 +62,12 @@ def cmd_run(arg, error, console, **kwargs):
         return console.result
 
 
+@command("-")
+def cmd_sep(last, console, **kwargs):
+    console.message("")
+    return last
+
+
 @command("close")
 @command("read-lines")
 @command("read-by-line")
