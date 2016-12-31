@@ -1,15 +1,15 @@
-import os
-import re
+import os as _os
+import re as _re
 
-from mklibpy.common.collection import SequenceDict
-from mklibpy.util.collection import format_list, format_dict
+from mklibpy.common.collection import SequenceDict as _SequenceDict
+from mklibpy.util.collection import format_list as _format_list, format_dict as _format_dict
 
-import util
+import util as _util
 
 __author__ = 'Michael'
 
 
-class HandlerMethodNotFound(util.Error):
+class HandlerMethodNotFound(_util.Error):
     pass
 
 
@@ -37,7 +37,7 @@ class OpenedFile(Handler):
             raise ValueError
         self.__name = name
         self.__file = open(name)
-        self.__size = os.path.getsize(name)
+        self.__size = _os.path.getsize(name)
 
     def __repr__(self):
         return "OpenedFile '{}' {} bytes".format(self.__name, self.__size)
@@ -278,12 +278,12 @@ class Line(Iterable):
         self._item = item.strip()
 
     def match(self, arg):
-        return re.search(arg, self._item) is not None
+        return _re.search(arg, self._item) is not None
 
 
 class SplitLine(Iterable):
     def __str__(self):
-        return format_list(
+        return _format_list(
             self._item,
             start="",
             end="",
@@ -294,7 +294,7 @@ class SplitLine(Iterable):
 
 class Dictionary(Iterable):
     def __str__(self):
-        return format_dict(
+        return _format_dict(
             self._item,
             start="",
             end="",
@@ -356,7 +356,7 @@ def __splitline_float(self, arg, error, **kwargs):
 
 @SplitLine.project("make-dict", Dictionary)
 def __splitline_kv(self, arg, **kwargs):
-    d = SequenceDict()
+    d = _SequenceDict()
     for i in self._item:
         try:
             k, v = i.split(arg, 1)
@@ -402,7 +402,7 @@ def __splitline_add_after(self, arg, error, **kwargs):
 @Dictionary.project("take", Dictionary)
 def __dictionary_take(self, arg, error, **kwargs):
     try:
-        d = SequenceDict()
+        d = _SequenceDict()
         for k in arg.split():
             d[k] = self._item[k]
         return d
@@ -413,7 +413,7 @@ def __dictionary_take(self, arg, error, **kwargs):
 @Dictionary.project("int", Dictionary)
 def __dictionary_int(self, arg, error, **kwargs):
     try:
-        d = SequenceDict()
+        d = _SequenceDict()
         int_keys = arg.split()
         for k in self._item:
             d[k] = self._item[k]
@@ -427,7 +427,7 @@ def __dictionary_int(self, arg, error, **kwargs):
 @Dictionary.project("number", Dictionary)
 def __dictionary_float(self, arg, error, **kwargs):
     try:
-        d = SequenceDict()
+        d = _SequenceDict()
         int_keys = arg.split()
         for k in self._item:
             d[k] = self._item[k]

@@ -1,17 +1,17 @@
 #!/usr/bin/python3
 
-from mklibpy.terminal import clear_screen
-from mklibpy.terminal.interact import user_input
+from mklibpy.terminal import clear_screen as _clear_screen
+from mklibpy.terminal.interact import user_input as _user_input
 
-import command
-import util
+import command as _command
+import util as _util
 
 __author__ = 'Michael'
 
 
 class Console(object):
     def __init__(self):
-        clear_screen()
+        _clear_screen()
         self.result = None
         self.stored_values = {}
 
@@ -22,7 +22,7 @@ class Console(object):
             cmd, arg = line.split(None, 1)
         except ValueError:
             cmd, arg = line, None
-        self.result = command.execute(
+        self.result = _command.execute(
             cmd,
             arg=arg,
             last=self.result,
@@ -34,20 +34,20 @@ class Console(object):
         MultiLineGroup(line).execute(self)
 
     def exit(self):
-        raise util.ExitCommand
+        raise _util.ExitCommand
 
     def reset(self):
-        raise util.ResetCommand
+        raise _util.ResetCommand
 
     def error(self, message):
-        raise util.Error(message)
+        raise _util.Error(message)
 
     def message(self, message):
-        util.message(message)
+        _util.message(message)
 
     def print(self):
         if self.result is not None:
-            util.result(repr(self.result))
+            _util.result(repr(self.result))
 
 
 class SingleLine(object):
@@ -66,8 +66,8 @@ class MultiLine(object):
         try:
             for l in self.lines:
                 l.execute(console)
-        except util.Error as e:
-            util.error(e.msg)
+        except _util.Error as e:
+            _util.error(e.msg)
 
 
 class MultiLineGroup(object):
@@ -85,12 +85,12 @@ def main():
     console = Console()
     while True:
         try:
-            line = user_input("> ")
+            line = _user_input("> ")
             console.line(line)
-        except util.ResetCommand:
+        except _util.ResetCommand:
             console = Console()
             continue
-        except util.ExitCommand:
+        except _util.ExitCommand:
             break
         console.print()
 

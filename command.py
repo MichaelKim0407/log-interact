@@ -1,5 +1,5 @@
-import log
-import util
+import log as _log
+import util as _util
 
 __author__ = 'Michael'
 
@@ -16,28 +16,28 @@ def command(name):
 
 def execute(name, **kwargs):
     if name not in __commands:
-        raise util.Error("Command '{}' not found".format(name))
+        raise _util.Error("Command '{}' not found".format(name))
     return __commands[name](cmd=name, **kwargs)
 
 
 # -----
 
 @command("exit")
-def cmd_exit(console, **kwargs):
+def __cmd_exit(console, **kwargs):
     console.exit()
 
 
 @command("reset")
-def cmd_reset(console, **kwargs):
+def __cmd_reset(console, **kwargs):
     console.reset()
 
 
 @command("open")
-def cmd_file_open(arg, error, **kwargs):
+def __cmd_file_open(arg, error, **kwargs):
     if arg is None:
         error("Please specify a file")
     try:
-        return log.OpenedFile(arg)
+        return _log.OpenedFile(arg)
     except ValueError:
         error("Invalid argument")
     except FileNotFoundError:
@@ -47,7 +47,7 @@ def cmd_file_open(arg, error, **kwargs):
 
 
 @command("run")
-def cmd_run(arg, error, console, **kwargs):
+def __cmd_run(arg, error, console, **kwargs):
     if arg is None:
         error("Please specify a script")
     try:
@@ -63,7 +63,7 @@ def cmd_run(arg, error, console, **kwargs):
 
 
 @command("-")
-def cmd_sep(last, console, **kwargs):
+def __cmd_sep(last, console, **kwargs):
     console.message("")
     return last
 
@@ -87,14 +87,14 @@ def cmd_sep(last, console, **kwargs):
 @command("replace")
 @command("limit")
 @command("store")
-def cmd_common(last, error, **kwargs):
+def __cmd_common(last, error, **kwargs):
     if last is None:
         error("Nothing to operate")
     return last.execute_cmd(error=error, **kwargs)
 
 
 @command("load")
-def cmd_load(arg, error, console, **kwargs):
+def __cmd_load(arg, error, console, **kwargs):
     if arg in console.stored_values:
         return console.stored_values[arg]
     else:
