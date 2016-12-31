@@ -418,6 +418,15 @@ class SplitLine(Iterable):
             r=False
         )
 
+    def __iter__(self):
+        return self._item.__iter__()
+
+    def __len__(self):
+        return self._item.__len__()
+
+    def __getitem__(self, item):
+        return self._item.__getitem__(item)
+
 
 class Dictionary(Iterable):
     def __str__(self):
@@ -432,12 +441,15 @@ class Dictionary(Iterable):
             r_val=False
         )
 
+    def __iter__(self):
+        return self._item.__iter__()
+
     def __getitem__(self, item):
-        return self._item[item]
+        return self._item.__getitem__(item)
 
     def match(self, arg):
-        for k in self._item:
-            locals()[k] = self._item[k]
+        for k in self:
+            locals()[k] = self[k]
         return eval(arg)
 
 
@@ -449,7 +461,7 @@ def __line_split(self, arg, **kwargs):
 @SplitLine.project("split", SplitLine)
 def __splitline_split(self, arg, **kwargs):
     def __iter():
-        for item in self._item:
+        for item in self:
             for i in item.split(arg):
                 yield i
 
@@ -459,7 +471,7 @@ def __splitline_split(self, arg, **kwargs):
 @SplitLine.project("take", SplitLine)
 def __splitline_take(self, arg, error, **kwargs):
     try:
-        return [self._item[int(i)] for i in arg.split()]
+        return [self[int(i)] for i in arg.split()]
     except IndexError or ValueError:
         error("Invalid argument")
 
@@ -468,8 +480,8 @@ def __splitline_take(self, arg, error, **kwargs):
 def __splitline_int(self, arg, error, **kwargs):
     try:
         indexes = [int(i) for i in arg.split()]
-        return [int(self._item[i]) if i in indexes else self._item[i]
-                for i in range(len(self._item))]
+        return [int(self[i]) if i in indexes else self[i]
+                for i in range(len(self))]
     except IndexError or ValueError:
         error("Invalid argument")
 
@@ -478,8 +490,8 @@ def __splitline_int(self, arg, error, **kwargs):
 def __splitline_float(self, arg, error, **kwargs):
     try:
         indexes = [int(i) for i in arg.split()]
-        return [float(self._item[i]) if i in indexes else self._item[i]
-                for i in range(len(self._item))]
+        return [float(self[i]) if i in indexes else self[i]
+                for i in range(len(self))]
     except IndexError or ValueError:
         error("Invalid argument")
 
@@ -487,7 +499,7 @@ def __splitline_float(self, arg, error, **kwargs):
 @SplitLine.project("make-dict", Dictionary)
 def __splitline_kv(self, arg, **kwargs):
     d = _SequenceDict()
-    for i in self._item:
+    for i in self:
         try:
             k, v = i.split(arg, 1)
         except ValueError:
@@ -501,8 +513,8 @@ def __splitline_add_before(self, arg, error, **kwargs):
     try:
         index, content = arg.split(None, 1)
         index = int(index)
-        return [content + self._item[i] if i == index else self._item[i]
-                for i in range(len(self._item))]
+        return [content + self[i] if i == index else self[i]
+                for i in range(len(self))]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -512,8 +524,8 @@ def __splitline_add_after(self, arg, error, **kwargs):
     try:
         index, content = arg.split(None, 1)
         index = int(index)
-        return [self._item[i] + content if i == index else self._item[i]
-                for i in range(len(self._item))]
+        return [self[i] + content if i == index else self[i]
+                for i in range(len(self))]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -523,8 +535,8 @@ def __splitline_add_after(self, arg, error, **kwargs):
     try:
         index, replace, replace_with = arg.split(None, 2)
         index = int(index)
-        return [self._item[i].replace(replace, replace_with) if i == index else self._item[i]
-                for i in range(len(self._item))]
+        return [self[i].replace(replace, replace_with) if i == index else self[i]
+                for i in range(len(self))]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -534,7 +546,7 @@ def __dictionary_take(self, arg, error, **kwargs):
     try:
         d = _SequenceDict()
         for k in arg.split():
-            d[k] = self._item[k]
+            d[k] = self[k]
         return d
     except KeyError:
         error("Invalid argument")
@@ -545,8 +557,8 @@ def __dictionary_int(self, arg, error, **kwargs):
     try:
         d = _SequenceDict()
         int_keys = arg.split()
-        for k in self._item:
-            d[k] = self._item[k]
+        for k in self:
+            d[k] = self[k]
             if k in int_keys:
                 d[k] = int(d[k])
         return d
@@ -559,8 +571,8 @@ def __dictionary_float(self, arg, error, **kwargs):
     try:
         d = _SequenceDict()
         int_keys = arg.split()
-        for k in self._item:
-            d[k] = self._item[k]
+        for k in self:
+            d[k] = self[k]
             if k in int_keys:
                 d[k] = float(d[k])
         return d
