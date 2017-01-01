@@ -96,7 +96,7 @@ class Selection(object):
         return self.__items.__getitem__(item)
 
     def __setitem__(self, key, value):
-        self.__items.__setitem__(key, value)
+        return self.__items.__setitem__(key, value)
 
     def append(self, item):
         val = item[self.__key]
@@ -447,6 +447,9 @@ class Dictionary(Iterable):
     def __getitem__(self, item):
         return self._item.__getitem__(item)
 
+    def __contains__(self, item):
+        return self._item.__contains__(item)
+
     def match(self, arg):
         for k in self:
             locals()[k] = self[k]
@@ -578,3 +581,24 @@ def __dictionary_float(self, arg, error, **kwargs):
         return d
     except KeyError or ValueError:
         error("Invalid argument")
+
+
+@Dictionary.project("rename", Dictionary)
+def __dictionary_rename(self, arg, error, **kwargs):
+    if not arg:
+        error("Invalid argument")
+    args = arg.split()
+    if len(args) != 2:
+        error("Invalid argument")
+    old_key, new_key = args
+    if old_key not in self:
+        error("Invalid argument")
+    elif new_key in self:
+        error("Invalid argument")
+    d = _SequenceDict()
+    for key in self:
+        if key == old_key:
+            d[new_key] = self[old_key]
+        else:
+            d[key] = self[key]
+    return d

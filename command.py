@@ -90,6 +90,7 @@ def __cmd_sep(last, console, **kwargs):
 @command("sort")
 @command("count")
 @command("sum")
+@command("rename")
 def __cmd_common(last, error, **kwargs):
     if last is None:
         error("Nothing to operate")

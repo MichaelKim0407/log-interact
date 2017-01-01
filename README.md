@@ -196,6 +196,14 @@ Note: All iterable commands can be executed on their collections respectively.
 
     Turn the values of specified keys or indexes to numbers (floating-point).
 
+* `rename KEY1 KEY2`
+
+    * Execute on: `Dictionary`
+    * Param `KEY1`: The key to be renamed
+    * Param `KEY2`: The new name
+
+    Rename a key.
+
 ### Collection commands
 
 * `print`
