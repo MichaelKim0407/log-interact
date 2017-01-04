@@ -977,6 +977,8 @@ class MultiLine(object):
                 l.execute(console)
         except Error as e:
             print("\033[1;31m" + e.msg + "\033[0m")
+        except Exception as e:
+            print("\033[1;31mUnhandled exception: {}\033[0m".format(e))
 
 
 class MultiLineGroup(object):

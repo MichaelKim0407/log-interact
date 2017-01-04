@@ -71,6 +71,8 @@ class MultiLine(object):
                 l.execute(console)
         except _util.Error as e:
             _util.error(e.msg)
+        except Exception as e:
+            _util.error("Unhandled exception: {}".format(e))
 
 
 class MultiLineGroup(object):
