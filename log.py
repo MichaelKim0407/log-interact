@@ -71,21 +71,22 @@ class Selection(object):
     def __init__(self, *keys):
         self.__keys = list(keys)
         key = self.__keys.pop(0)
-        try:
+        if isinstance(key, list) or isinstance(key, tuple):
             self.__key, self.__sort = key
-        except ValueError:
+        else:
             self.__key, self.__sort = key, None
 
         self.__items = _SequenceDict()
 
     def __iter(self, *kvs):
+        kvs = list(kvs)
         if self.__keys:
             for val in self.__items:
-                for i in self[val].__iter(*kvs, (self.__key, val)):
+                for i in self[val].__iter(*(kvs + [(self.__key, val)])):
                     yield i
         else:
             for val in self.__items:
-                yield ((*kvs, (self.__key, val)), self[val])
+                yield (kvs + [(self.__key, val)], self[val])
 
     def __iter__(self):
         for kvs, l in self.__iter():
