@@ -201,7 +201,7 @@ class List(Collection):
 
     def print(self, console, **kwargs):
         for line in self._save_lines():
-            console.message(line)
+            console.output(line)
         return self
 
     def save(self, **kwargs):

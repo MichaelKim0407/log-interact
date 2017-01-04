@@ -42,6 +42,9 @@ class Console(object):
     def error(self, message):
         raise _util.Error(message)
 
+    def output(self, message):
+        print(message)
+
     def message(self, message):
         _util.message(message)
 
