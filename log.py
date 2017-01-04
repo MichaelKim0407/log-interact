@@ -511,6 +511,19 @@ class Group(Handler):
 
         self.__items = _util.SortedDict(self.__sort)
 
+    def __repr__(self):
+        def __formatter(item):
+            k, s = item
+            if s is None:
+                return k
+            else:
+                return k + " " + s
+
+        return "Group {}".format(_format_list(
+            [(self.__key, self.__sort)] + self.__keys,
+            formatter=__formatter
+        ))
+
     def __iter(self, *kvs):
         kvs = list(kvs)
         if self.__keys:
