@@ -1,0 +1,18 @@
+open sample/1.in && read-lines && split ^ && make-dict =
+int id a
+store x
+print
+-
+keep id == 1
+print
+-
+load x
+group @ ip
+add-count
+sum count a
+un-group
+print
+-
+sort @ count - a +
+save sample/1.out
+print
