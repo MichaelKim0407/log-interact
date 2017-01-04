@@ -170,8 +170,11 @@ class Collection(Handler):
         if len(args) < 2:
             error("Invalid argument")
         group = Group(*_util.resolve_group_args(*args[1:]))
-        for item in self:
-            group.append(item)
+        try:
+            for item in self:
+                group.append(item)
+        except KeyError:
+            error("Invalid argument")
         return group
 
 
