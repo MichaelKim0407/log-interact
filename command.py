@@ -64,7 +64,7 @@ def __cmd_run(arg, error, console, **kwargs):
 
 @command("-")
 def __cmd_sep(last, console, **kwargs):
-    console.message("")
+    console.output("")
     return last
 
 
@@ -91,6 +91,7 @@ def __cmd_sep(last, console, **kwargs):
 @command("un-group")
 @command("sort")
 @command("count")
+@command("add-count")
 @command("sum")
 @command("rename")
 def __cmd_common(last, error, **kwargs):

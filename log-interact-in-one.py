@@ -759,8 +759,8 @@ class Group(Handler):
             arg = "count"
 
         def __add_count(kvs, item):
-            result = item.copy()
-            item[arg] = 1
+            result = item._item.copy()
+            result[arg] = 1
             return result
 
         return self.__new_group(converter=__add_count)
@@ -893,6 +893,7 @@ def __cmd_sep(last, console, **kwargs):
 @command("un-group")
 @command("sort")
 @command("count")
+@command("add-count")
 @command("sum")
 @command("rename")
 def __cmd_common(last, error, **kwargs):

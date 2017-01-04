@@ -578,8 +578,8 @@ class Group(Handler):
             arg = "count"
 
         def __add_count(kvs, item):
-            result = item.copy()
-            item[arg] = 1
+            result = item._item.copy()
+            result[arg] = 1
             return result
 
         return self.__new_group(converter=__add_count)
