@@ -14,8 +14,6 @@ This Python program requires Python 3 (tested with 3.4+) and does ___not___ run 
 
 ## Single-file installation
 
-(Under construction)
-
 Download `log-interact-in-one.py`. This file does not require the `mklibpy` package and is executable as long as you have Python 3.
 
 # Usage
@@ -71,6 +69,12 @@ Before moving on to `Commands` section, it is important to understand some of th
     * `Iter`
 
         A collection that is yet to be read from file. This is useful when dealing with large files. You can queue up actions for each log entry before you actually read the file.
+
+* `Group`
+
+    A group is a collection of log entries divided by a single key. Each group contain multiple sub-groups, and entries in each sub-group has the same value for that key.
+
+    Each sub-group can be another group, or just a list of entries.
 
 ## Commands
 
@@ -272,37 +276,66 @@ Note: All iterable commands can be executed on their collections respectively.
 
     Keep only a number of entries.
 
-* `sort @ KEY1 +/- [KEY2 +/- ...]`
+### Group commands
+
+* `group @ KEY1 [+/-] [KEY2 [+/-] ...]`
 
     * Execute on: `List` or `Iter` of `Dictionary`
-    * Param `KEY +/- ...`: The keys to sort by. + means ascending and - means descending
+    * Param `KEY [+/-] ...`: The keys to group by
+    * Return: `Group`
+
+    Group all entries by the given keys. If `+` or `-` is specified, all sub-groups will be sorted, where `+` means ascending and `-` means descending.
+
+    Note that `Iter` will be iterated.
+
+* `un-group`
+
+    * Execute on: `Group`
     * Return: `List` of `Dictionary`
 
-    Sort all entries by the keys specified.
+    Un-group all entries in the order that they were grouped.
 
-    Note that `Iter` will be iterated and the result will be a `List`.
+* `count [NAME]`
 
-* `count [NAME] @ KEY1 [KEY2...]`
-
-    * Execute on: `List` or `Iter` of `Dictionary`
+    * Execute on: `Group`
     * Param `NAME` (optional): The new key. Defaults to `count`.
-    * Param `KEY...`: The keys to group by
-    * Return: `List` of `Dictionary`
+    * Return: `Group`
 
-    Group entries by the keys specified and add a new `NAME` key with the count of that group as value.
+    Count the number of entries within each smallest sub-group, and add it as under the new key `NAME`.
 
-    Note that `Iter` will be iterated and the result will be a `List`.
+* `sum SUM_KEY1 [SUM_KEY2...]`
 
-* `sum SUM_KEY1 [SUM_KEY2...] @ KEY1 [KEY2...]`
+    * Execute on: `Group`
+    * Param `SUM_KEY...`: The keys to sum
+    * Return: `Group`
 
-    * Execute on: `List` or `Iter` of `Dictionary`
-    * Param `SUM_KEY...`: The keys to sum. Defaults to `count`.
-    * Param `KEY...`: The keys to group by
-    * Return: `List` of `Dictionary`
+    Sum up the values of the given keys for entries within each smallest sub-group. The values to sum up must be turned into integer or number before this operation.
 
-    Group entries by the keys specified and add sum up specified keys in each group. The values to sum up must be turned into integer or number before this operation.
+* `add-count [NAME]`
 
-    Note that `Iter` will be iterated and the result will be a `List`.
+    * Execute on: `Group`
+    * Param `NAME` (optional): The new key. Defaults to `count`.
+    * Return: `Group`
+
+    Add a new key `NAME` with value `1` to all entries. This is useful if you wish to perform `count` and `sum` at the same time.
+
+* Advanced syntax
+
+    Replace `group` with `count` or `sum` to directly result in a `List`. This is equivalent to chaining commands (see below). For example,
+
+        sum n @ id
+
+    is the same as
+
+        group @ id && sum n && un-group
+
+    Also, you can replace `group` with `sort` to only sort the entries. For example,
+
+        sort @ count - id +
+
+    is the same as
+
+        group @ count - id + && un-group
 
 ## More on commands
 
