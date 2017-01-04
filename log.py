@@ -1,7 +1,7 @@
 import os as _os
 import re as _re
 
-from mklibpy.common.collection import SequenceDict as _SequenceDict, StandardList as _StandardList
+from mklibpy.common.collection import SequenceDict as _SequenceDict
 from mklibpy.util.collection import format_list as _format_list, format_dict as _format_dict
 from mklibpy.util.collection import to_dict as _to_dict
 
@@ -67,84 +67,6 @@ class OpenedFile(Handler):
         return Iterator(Line, __exit)(__iter)
 
 
-class Selection(object):
-    def __init__(self, *keys):
-        self.__keys = list(keys)
-        key = self.__keys.pop(0)
-        if isinstance(key, list) or isinstance(key, tuple):
-            self.__key, self.__sort = key
-        else:
-            self.__key, self.__sort = key, None
-
-        self.__items = _SequenceDict()
-
-    def __iter(self, *kvs):
-        kvs = list(kvs)
-        if self.__keys:
-            for val in self.__items:
-                for i in self[val].__iter(*(kvs + [(self.__key, val)])):
-                    yield i
-        else:
-            for val in self.__items:
-                yield (kvs + [(self.__key, val)], self[val])
-
-    def __iter__(self):
-        for kvs, l in self.__iter():
-            for item in l:
-                yield item
-
-    def __getitem__(self, item):
-        return self.__items.__getitem__(item)
-
-    def __setitem__(self, key, value):
-        return self.__items.__setitem__(key, value)
-
-    def append(self, item):
-        val = item[self.__key]
-        if val not in self.__items:
-            if self.__keys:
-                self[val] = Selection(*self.__keys)
-            else:
-                self[val] = []
-        self[val].append(item)
-
-    def sort(self):
-        if self.__sort == "+":
-            self.__items.sort()
-        elif self.__sort == "-":
-            self.__items.sort(reverse=True)
-        if self.__keys:
-            for item in self.__items.values():
-                item.sort()
-
-    def count(self, name):
-        for kvs, l in self.__iter():
-            keys = []
-            values = []
-            for k, v in kvs:
-                keys.append(k)
-                values.append(v)
-            keys.append(name)
-            values.append(len(l))
-            yield _SequenceDict(*keys, **_to_dict(keys, values))
-
-    def sum(self, *sum_keys):
-        sum_keys = list(sum_keys)
-        for kvs, l in self.__iter():
-            keys = []
-            values = []
-            for k, v in kvs:
-                keys.append(k)
-                values.append(v)
-            keys.extend(sum_keys)
-            for key in sum_keys:
-                val = 0
-                for item in l:
-                    val += item[key]
-                values.append(val)
-            yield _SequenceDict(*keys, **_to_dict(keys, values))
-
-
 class Collection(Handler):
     def __init__(self, type):
         self._type = type
@@ -166,7 +88,17 @@ class Collection(Handler):
         pass
 
     def execute_cmd(self, cmd, **kwargs):
-        if cmd in self._type.PROJECTED_TYPE:
+        arg = kwargs["arg"]
+        if arg and "@" in arg and cmd != "group":
+            arg1, arg2 = [a.strip() for a in arg.rsplit("@", 1)]
+            console = kwargs["console"]
+            if cmd == "sort":
+                line = "group @ {} && un-group".format(arg2)
+            else:
+                line = "group @ {} && {} {} && un-group".format(arg2, cmd, arg1)
+            console.line(line)
+            return console.result
+        elif cmd in self._type.PROJECTED_TYPE:
             projected_type = self._type.PROJECTED_TYPE[cmd]
             return self.get_items(projected_type,
                                   converter=lambda item: item.execute_cmd(cmd=cmd, **kwargs))
@@ -227,60 +159,20 @@ class Collection(Handler):
 
         return __iter
 
-    def sort(self, arg, error, **kwargs):
+    def group(self, arg, error, **kwargs):
         if self._type is not Dictionary:
-            error("`sort` can only apply to Dictionary")
+            error("`group` can only apply to Dictionary")
         if not arg:
             error("Invalid argument")
         args = arg.split()
         if args[0] != "@":
             error("Invalid argument")
-        if len(args) < 3:
+        if len(args) < 2:
             error("Invalid argument")
-        keys = _StandardList(args[1:]).split(2)
-        for key, asc in keys:
-            if asc not in ["+", "-"]:
-                error("Invalid argument")
-        selection = Selection(*keys)
+        group = Group(*_util.resolve_group_args(*args[1:]))
         for item in self:
-            selection.append(item)
-        selection.sort()
-        return List(Dictionary)(selection)
-
-    def count(self, arg, error, **kwargs):
-        if self._type is not Dictionary:
-            error("`count` can only apply to Dictionary")
-        if not arg:
-            error("Invalid argument")
-        args = arg.split()
-        if args[0] == "@":
-            name = "count"
-            keys = args[1:]
-        elif args[1] == "@":
-            name = args[0]
-            keys = args[2:]
-        else:
-            error("Invalid argument")
-        selection = Selection(*keys)
-        for item in self:
-            selection.append(item)
-        return List(Dictionary)(selection.count(name))
-
-    def sum(self, arg, error, **kwargs):
-        if self._type is not Dictionary:
-            error("`sum` can only apply to Dictionary")
-        if not arg:
-            error("Invalid argument")
-        args = arg.split()
-        if "@" not in args:
-            error("Invalid argument")
-        i = args.index("@")
-        sum_keys = args[:i]
-        keys = args[i + 1:]
-        selection = Selection(*keys)
-        for item in self:
-            selection.append(item)
-        return List(Dictionary)(selection.sum(*sum_keys))
+            group.append(item)
+        return group
 
 
 class List(Collection):
@@ -517,8 +409,9 @@ def __splitline_add_before(self, arg, error, **kwargs):
     try:
         index, content = arg.split(None, 1)
         index = int(index)
-        return [content + self[i] if i == index else self[i]
-                for i in range(len(self))]
+        length = len(self)
+        return [content + self[i] if i == index % length  else self[i]
+                for i in range(length)]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -528,8 +421,9 @@ def __splitline_add_after(self, arg, error, **kwargs):
     try:
         index, content = arg.split(None, 1)
         index = int(index)
-        return [self[i] + content if i == index else self[i]
-                for i in range(len(self))]
+        length = len(self)
+        return [self[i] + content if i == index % length else self[i]
+                for i in range(length)]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -539,8 +433,9 @@ def __splitline_add_after(self, arg, error, **kwargs):
     try:
         index, replace, replace_with = arg.split(None, 2)
         index = int(index)
-        return [self[i].replace(replace, replace_with) if i == index else self[i]
-                for i in range(len(self))]
+        length = len(self)
+        return [self[i].replace(replace, replace_with) if i == index % length else self[i]
+                for i in range(length)]
     except IndexError or ValueError or TypeError:
         error("Invalid argument")
 
@@ -603,3 +498,112 @@ def __dictionary_rename(self, arg, error, **kwargs):
         else:
             d[key] = self[key]
     return d
+
+
+class Group(Handler):
+    def __init__(self, *keys):
+        self.__keys = list(keys)
+        key = self.__keys.pop(0)
+        if isinstance(key, list) or isinstance(key, tuple):
+            self.__key, self.__sort = key
+        else:
+            self.__key, self.__sort = key, None
+
+        self.__items = _util.SortedDict(self.__sort)
+
+    def __iter(self, *kvs):
+        kvs = list(kvs)
+        if self.__keys:
+            for val in self.__items:
+                for i in self[val].__iter(*(kvs + [(self.__key, val)])):
+                    yield i
+        else:
+            for val in self.__items:
+                yield (kvs + [(self.__key, val)], self[val])
+
+    def __iter__(self):
+        for kvs, l in self.__iter():
+            for item in l:
+                yield item
+
+    def __getitem__(self, item):
+        return self.__items.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        return self.__items.__setitem__(key, value)
+
+    def append(self, item):
+        val = item[self.__key]
+        if val not in self.__items:
+            if self.__keys:
+                self[val] = Group(*self.__keys)
+            else:
+                self[val] = []
+        self[val].append(item)
+
+    def un_group(self, **kwargs):
+        a = List(Dictionary)(self)
+        return a
+
+    def __new_group(self, converter=None, l_converter=None):
+        group = Group((self.__key, self.__sort), *self.__keys)
+
+        if l_converter is not None:
+            for kvs, l in self.__iter():
+                group.append(l_converter(kvs, l))
+        elif converter is not None:
+            for kvs, l in self.__iter():
+                for item in l:
+                    group.append(converter(kvs, item))
+        else:
+            raise ValueError
+
+        return group
+
+    def add_count(self, arg, **kwargs):
+        if not arg:
+            arg = "count"
+
+        def __add_count(kvs, item):
+            result = item.copy()
+            item[arg] = 1
+            return result
+
+        return self.__new_group(converter=__add_count)
+
+    def count(self, arg, **kwargs):
+        if not arg:
+            arg = "count"
+
+        def __count(kvs, l):
+            keys = []
+            values = []
+            for k, v in kvs:
+                keys.append(k)
+                values.append(v)
+            keys.append(arg)
+            values.append(len(l))
+            return _SequenceDict(*keys, **_to_dict(keys, values))
+
+        return self.__new_group(l_converter=__count)
+
+    def sum(self, arg, error, **kwargs):
+        if not arg:
+            error("No argument given")
+        sum_keys = arg.split()
+
+        def __sum(kvs, l):
+            keys = []
+            values = []
+            for k, v in kvs:
+                keys.append(k)
+                values.append(v)
+            keys.extend(sum_keys)
+            for key in sum_keys:
+                val = 0
+                for item in l:
+                    val += item[key]
+                values.append(val)
+            return _SequenceDict(*keys, **_to_dict(keys, values))
+
+        return self.__new_group(l_converter=__sum)

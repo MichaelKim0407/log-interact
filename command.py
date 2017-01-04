@@ -87,6 +87,8 @@ def __cmd_sep(last, console, **kwargs):
 @command("replace")
 @command("limit")
 @command("store")
+@command("group")
+@command("un-group")
 @command("sort")
 @command("count")
 @command("sum")
